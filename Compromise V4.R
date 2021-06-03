@@ -205,7 +205,7 @@ Gs =~  SCB_ConStroopRTms_v1_rev +
        CDR_ChoiceRTms_v1c_rev 
 
        
-Gl_m6 =~ CDR_ImmWRCorrect_v1 +
+Glr_m6 =~ CDR_ImmWRCorrect_v1 +
        CDR_DelayedWRCorrect_v1 
        
 
@@ -248,9 +248,9 @@ semPaths(test1, intercepts = F, residuals = F,
          layout = "tree2", nCharNodes = 10, 
          sizeMan = 5, filetype = "png",
          filename = "sem plot CHC", width = 25,
-         reorder = F, latents = c("Gt","Gs", "Gwm","Glr","Gf","Gc"))
+         reorder = F, latents = c("Gt","Gs", "Gwm_ac","Gl_m6","Gf","Gc"))
 
-
+?semPaths
 
 ## Save factor scores ##
 
