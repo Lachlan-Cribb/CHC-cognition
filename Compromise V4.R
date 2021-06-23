@@ -8,7 +8,7 @@ library(semPlot)
 
 ## Load data 
 
-arcli <- read_sav("C:\\Users\\lachy\\Dropbox\\ARCLI data entry\\BLINDED DATA SETS\\BLINDED _DO NOT TOUCH\\ARCLI_V1_Baseline_ALL_29-APR-2021.sav")
+arcli <- read_sav("C:\\Users\\lachy\\Dropbox\\ARCLI data entry\\BLINDED DATA SETS\\BLINDED _DO NOT TOUCH\\ARCLI_V1_Baseline_ALL_18-JUN-2021.sav")
 
 
 # remove -999
@@ -26,7 +26,6 @@ arcli <- arcli %>%
 
 arcli <- arcli %>% 
   rename(CDR_DelayedWRCorrect_v1 = `CDR_DelayedWRCorrect#_v1`)
-
 
 
 # create new overall scores where missing
