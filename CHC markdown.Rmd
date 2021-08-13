@@ -1,7 +1,6 @@
 ---
 output:
-  rmdformats::html_clean:
-    toc: false
+  rmdformats::html_docco:
     fig_width: 6
     fig_height: 6
     thumbnails: false
@@ -232,7 +231,7 @@ imp_dat <- complete(cog_vars3_imp) # imputed data
 ```
 
 
-Check that the imputation produced reasonable replacements. The red circles are the imputed observations. 
+Check that the imputation produced reasonable replacements. The red circles are the imputed observations. Imputation 1 is the original data, imputation 2 is the data with imputations. 
 
 ```{r}
 
@@ -246,18 +245,16 @@ stripplot(cog_vars3_imp, wlogCDR_SimpleRTms_v1_rev +
 stripplot(cog_vars3_imp, wlogSCB_ConStroopRTms_v1_rev +
             wlogSCB_InconStroopRTms_v1_rev +
             wlogTMT_Ams_v1_rev +
-            wlogTMT_Bms_v1_rev  ~ .imp)
+            wlogTMT_Bms_v1_rev + wWASI_vocabrawscore +
+            wWASImatrixreasoningrawscore ~ .imp)
 
 
 stripplot(cog_vars3_imp, wCDR_ImmWRCorrect_v1 +
             wCDR_DelayedWRCorrect_v1 +
             wSerial3sAcc_v1 +
-            wSerial7sAcc_v1 +
+            wSerial7sAcc_v1 + wMMSE + 
             wCDR_NumericWMOverallAcc_v1  ~ .imp)
 
-stripplot(cog_vars3_imp, wWASImatrixreasoningrawscore + 
-            wMMSE +
-            wWASI_vocabrawscore ~ .imp)
 
 ```
 
