@@ -3,7 +3,6 @@ library(tidyverse)
 library(lavaan)
 library(psych)
 library(semTools)
-library(semPlot)
 library(mice)
 
 
@@ -54,22 +53,30 @@ cog_vars <- arcli %>%
 
 cog_vars <- cog_vars[which(rowMeans(is.na(cog_vars)) < 0.80),]
 
-# check histograms #
-
-#multi.hist(cog_vars[,-1])
-
 
 # log transform RT variables
 
-cont_vars <- cog_vars %>% select(
-  CDR_RVIPRTms_v1,,TMT_Bms_v1,CDR_SimpleRTms_v1, CDR_ChoiceRTms_v1, 
+RT_vars <- cog_vars %>% select(
+  CDR_RVIPRTms_v1,TMT_Bms_v1,CDR_SimpleRTms_v1, CDR_ChoiceRTms_v1, 
   CDR_DigitVigRTms_v1, SCB_ConStroopRTms_v1, SCB_InconStroopRTms_v1, 
   Jenson8ChoiceDecisionTimems_v1,Jenson4ChoiceDecisionTimems_v1,
   Jenson1ChoiceDecisionTimems_v1, TMT_Ams_v1) %>% 
   names() # variable names
 
 cog_vars <- cog_vars %>% 
-  mutate(across(all_of(cont_vars), ~ log2(.), .names = "log{.col}")) # log 2 transform
+  mutate(across(all_of(RT_vars), ~ log2(.), .names = "log{.col}")) # log 2 transform
+
+
+# check histograms #
+
+cog_vars[,c(24:34)] %>% select(where(is.numeric)) %>% 
+  multi.hist(global = F)
+
+cog_vars %>% select(CDR_ImmWRCorrect_v1, CDR_DelayedWRCorrect_v1,
+                               CDR_NumericWMOverallAcc_v1, MMSE,
+                               WASImatrixreasoningrawscore, WASI_vocabrawscore,
+                               Serial3sAcc_v1, Serial7sAcc_v1) %>% 
+  multi.hist(global = F)
 
 
 # winsorise outliers for RT vars
@@ -91,21 +98,41 @@ winsorise <- function(x, sd){
 
 # Winsorise outliers 
 
-cog_vars <- cog_vars %>% # RT measures
-  mutate(across(starts_with("log"), winsorise, sd = 3, .names = "w{.col}"))
+cog_vars <- cog_vars %>% # winsorise everything except age
+  mutate(across(c(where(is.numeric), -Initialage), winsorise, sd = 3, .names = "w{.col}"))
 
-cog_vars <- cog_vars %>% # WASI measures
-  mutate(across(starts_with("WASI"), winsorise, sd = 3, .names = "w{.col}"))
+cog_vars2 <- cog_vars %>% select(IDno, Initialage, Sex, starts_with("wlog"), 
+                                 wWASImatrixreasoningrawscore, wWASI_vocabrawscore, 
+                                 wCDR_ImmWRCorrect_v1,wCDR_DelayedWRCorrect_v1, 
+                                 wCDR_NumericWMOverallAcc_v1, wMMSE,wSerial3sAcc_v1,
+                                 wSerial7sAcc_v1) # select relevant variables
+
+# histograms of winsorised variables
+
+cog_vars2 %>% select(starts_with("wlog")) %>% 
+  multi.hist(global = F)
+
+cog_vars2 %>% select(wCDR_ImmWRCorrect_v1, wCDR_DelayedWRCorrect_v1,
+                    wCDR_NumericWMOverallAcc_v1, wMMSE,
+                    wWASImatrixreasoningrawscore, wWASI_vocabrawscore,
+                    wSerial3sAcc_v1, wSerial7sAcc_v1) %>% 
+  multi.hist(global = F)
 
 ## remove cases with more than half cog vars missing
 
-cog_vars <- cog_vars[which(rowMeans(is.na(cog_vars)) < 0.50),]
+nrow(cog_vars2)
+
+cog_vars2 <- cog_vars2[which(rowMeans(is.na(cog_vars2)) < 0.50),]
+
+nrow(cog_vars2)
 
 # check missing data per variable
 
-n_miss <- colSums(is.na(cog_vars))
+n_miss <- colSums(is.na(cog_vars2))
 
-sort(n_miss / 514)
+median(n_miss / nrow(cog_vars2))
+
+sort(n_miss / nrow(cog_vars2))
 
 # Reverse score reaction time measures
 
@@ -115,47 +142,72 @@ reverse_RT <- function(x){
   x
 }
 
-cog_vars <- cog_vars %>% 
+cog_vars2 <- cog_vars2 %>% 
   mutate(across(starts_with("wlog"), reverse_RT, .names = "{.col}_rev"))
 
 
 ## rescale accuracy variables (10% units)
 
-cog_vars <- cog_vars %>% mutate(across(starts_with("Serial"), ~  . / 10))
+cog_vars2 <- cog_vars2 %>% mutate(across(starts_with("wSerial"), ~  . / 10))
 
-cog_vars <- cog_vars %>% mutate(CDR_NumericWMOverallAcc_v1 = CDR_NumericWMOverallAcc_v1 / 10)
+cog_vars2 <- cog_vars2 %>% mutate(wCDR_NumericWMOverallAcc_v1 = wCDR_NumericWMOverallAcc_v1 / 10)
 
 # rescale WASI scores to per 10 points 
 
-cog_vars <- cog_vars %>% 
+cog_vars2 <- cog_vars2 %>% 
   mutate_at(vars("wWASImatrixreasoningrawscore",
                  "wWASI_vocabrawscore"),
             .funs = ~ . / 10)
 
 # select relevant variables #
 
-cog_vars2 <- cog_vars %>% 
-  select(IDno, Sex, Initialage, ends_with("_rev"), CDR_ImmWRCorrect_v1, wWASI_vocabrawscore, wWASImatrixreasoningrawscore,
-         CDR_DelayedWRCorrect_v1, CDR_NumericWMOverallAcc_v1, MMSE,
-         Serial3sAcc_v1, Serial7sAcc_v1)
+cog_vars3 <- cog_vars2 %>% 
+  select(IDno, Sex, Initialage, ends_with("_rev"), wCDR_ImmWRCorrect_v1, wWASI_vocabrawscore, wWASImatrixreasoningrawscore,
+         wCDR_DelayedWRCorrect_v1, wCDR_NumericWMOverallAcc_v1, wMMSE,
+         wSerial3sAcc_v1, wSerial7sAcc_v1)
 
 ## single imputation
 
-# predictive mean matching for continuous vars, proportional odds for ordinal
+# predictive mean matching
 
-predictormatrix <- quickpred(cog_vars2, 
+predictormatrix <- quickpred(cog_vars3, 
                            include=c("Sex", "Initialage"),
                            exclude="IDno",
                            mincor = 0.1)
 
-cog_vars2_imp <- mice(cog_vars2, m = 1, method = "pmm",
-                      predictorMatrix = predictormatrix, diagnostics = T)
+cog_vars3_imp <- mice(cog_vars3, m = 1, method = "pmm",
+                      predictorMatrix = predictormatrix, diagnostics = T,
+                      seed = 10)
 
-imp_dat <- complete(cog_vars2_imp) # imputed data 
+imp_dat <- complete(cog_vars3_imp) # imputed data 
 
 # check imputation for each variable 
 
-mice::stripplot(cog_vars2_imp, wlogCDR_RVIPRTms_v1_rev + wlogTMT_Bms_v1_rev ~ .imp)
+stripplot(cog_vars3_imp, wlogCDR_SimpleRTms_v1_rev +
+                  wlogCDR_ChoiceRTms_v1_rev +
+                  wlogCDR_DigitVigRTms_v1_rev +
+                  wlogJenson8ChoiceDecisionTimems_v1_rev +
+                  wlogJenson4ChoiceDecisionTimems_v1_rev +
+                  wlogJenson1ChoiceDecisionTimems_v1_rev ~ .imp)
+
+stripplot(cog_vars3_imp, wlogSCB_ConStroopRTms_v1_rev +
+            wlogSCB_InconStroopRTms_v1_rev +
+            wlogTMT_Ams_v1_rev +
+            wlogTMT_Bms_v1_rev  ~ .imp)
+
+
+stripplot(cog_vars3_imp, wCDR_ImmWRCorrect_v1 +
+            wCDR_DelayedWRCorrect_v1 +
+            wSerial3sAcc_v1 +
+            wSerial7sAcc_v1 +
+            wCDR_NumericWMOverallAcc_v1  ~ .imp)
+
+stripplot(cog_vars3_imp, wWASImatrixreasoningrawscore + 
+            wMMSE +
+            wWASI_vocabrawscore ~ .imp)
+
+
+# data for CFA 
 
 varTable(imp_dat)
 
@@ -180,24 +232,24 @@ Gs =~  wlogSCB_ConStroopRTms_v1_rev +
        wlogCDR_ChoiceRTms_v1_rev 
 
        
-Glr_m6 =~ CDR_ImmWRCorrect_v1 +
-       CDR_DelayedWRCorrect_v1 
+Glr_m6 =~ wCDR_ImmWRCorrect_v1 +
+       wCDR_DelayedWRCorrect_v1 
        
 
-Gwm_ac =~ Serial3sAcc_v1 +
-        Serial7sAcc_v1 +
-        CDR_NumericWMOverallAcc_v1 +
+Gwm_ac =~ wSerial3sAcc_v1 +
+        wSerial7sAcc_v1 +
+        wCDR_NumericWMOverallAcc_v1 +
         wlogTMT_Bms_v1_rev
 
 Gf =~ wWASImatrixreasoningrawscore
 
-Gc =~ MMSE +
+Gc =~ wMMSE +
       wWASI_vocabrawscore
 
 
 # correlated residuals
 wlogTMT_Ams_v1_rev ~~ wlogTMT_Bms_v1_rev
-Serial3sAcc_v1 ~~ Serial7sAcc_v1
+wSerial3sAcc_v1 ~~ wSerial7sAcc_v1
 wlogJenson4ChoiceDecisionTimems_v1_rev ~~ wlogJenson1ChoiceDecisionTimems_v1_rev
 wlogJenson8ChoiceDecisionTimems_v1_rev ~~ wlogJenson1ChoiceDecisionTimems_v1_rev
 wlogJenson8ChoiceDecisionTimems_v1_rev ~~ wlogJenson4ChoiceDecisionTimems_v1_rev
@@ -206,21 +258,11 @@ wlogJenson8ChoiceDecisionTimems_v1_rev ~~ wlogJenson4ChoiceDecisionTimems_v1_rev
 # fit model
 
 test1 <- cfa(model, data = imp_dat, estimator = "MLR", std.lv = F)
-
+?multi.hist
 
 # results
 
 summary(test1, fit.measures=T, standardized = T)
-
-
-## SEM plot
-
-semPaths(test1, intercepts = F, residuals = F,
-         layout = "tree2", nCharNodes = 10, 
-         sizeMan = 5, filetype = "png",
-         filename = "sem plot CHC", width = 25,
-         reorder = F, latents = c("Gt","Gs", "Gwm_ac","Gl_m6","Gf","Gc"))
-
 
 ## Save factor scores ##
 
@@ -240,6 +282,6 @@ arcli2 <- arcli %>% full_join(new, by = "IDno")
 
 write_sav(arcli2, "arcli with CHC.sav")
 
-
+?mice
 
 
