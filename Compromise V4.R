@@ -282,6 +282,4 @@ arcli2 <- arcli %>% full_join(new, by = "IDno")
 
 write_sav(arcli2, "arcli with CHC.sav")
 
-?mice
-
 
