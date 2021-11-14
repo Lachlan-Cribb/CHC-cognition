@@ -8,7 +8,7 @@ library(mice)
 
 ## Load data 
 
-arcli <- read_sav("C:\\Users\\lachy\\Dropbox\\ARCLI data entry\\BLINDED DATA SETS\\BLINDED _DO NOT TOUCH\\ARCLI_V1_Baseline_ALL_13-JUL-2021.sav")
+arcli <- read_sav("PATH")
 
 # remove -999
 
