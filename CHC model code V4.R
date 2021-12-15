@@ -5,10 +5,9 @@ library(psych)
 library(semTools)
 library(mice)
 
-
 ## Load data 
 
-arcli <- read_sav("C:\\Users\\lachy\\Dropbox\\ARCLI data entry\\BLINDED DATA SETS\\BLINDED _DO NOT TOUCH\\ARCLI_V1_Baseline_ALL_13-JUL-2021.sav")
+arcli <- read_sav("C:\\Users\\lachy\\Dropbox\\ARCLI data entry\\BLINDED DATA SETS\\BLINDED _DO NOT TOUCH\\ARCLI_V1_Baseline_ALL_7-SEPT-2021.sav")
 
 # remove -999
 
@@ -19,12 +18,13 @@ arcli <- na_if(arcli, -99)
 
 # Rename problematic variable names
 
-
 arcli <- arcli %>% 
-  rename(CDR_ImmWRCorrect_v1 = `CDR_ImmWRCorrect#_v1`)
-
-arcli <- arcli %>% 
-  rename(CDR_DelayedWRCorrect_v1 = `CDR_DelayedWRCorrect#_v1`)
+  rename(CDR_ImmWRCorrect_v1 = `CDR_ImmWRCorrect#_v1`) %>% 
+  rename(CDR_DelayedWRCorrect_v1 = `CDR_DelayedWRCorrect#_v1`) %>% 
+  rename(Serial3Correct_v1 = `Serial3sCorrectresponses#_v1`) %>% 
+  rename(Serial3Total_v1 = `Serial3sTotalResponses#_v1`) %>% 
+  rename(Serial7Correct_v1 = `Serial7sCorrectresponses#_v1`) %>% 
+  rename(Serial7Total_v1 = `Serial7sTotalResponses#_v1`)
 
 
 # create new overall score
@@ -37,7 +37,6 @@ arcli$Sex <- as.factor(arcli$Sex)
 
 levels(arcli$Sex) <- c("male", "female")
 
-
 # select relevant variables 
 
 cog_vars <- arcli %>% 
@@ -46,7 +45,7 @@ cog_vars <- arcli %>%
                 CDR_DigitVigRTms_v1, SCB_ConStroopRTms_v1, SCB_InconStroopRTms_v1, 
                 Jenson8ChoiceDecisionTimems_v1,Jenson4ChoiceDecisionTimems_v1,
                 Jenson1ChoiceDecisionTimems_v1,WASImatrixreasoningrawscore, 
-                WASI_vocabrawscore, MMSE, Serial3sAcc_v1, Serial7sAcc_v1, TMT_Ams_v1)
+                WASI_vocabrawscore, MMSE, Serial3Correct_v1, Serial7Correct_v1, TMT_Ams_v1)
 
 
 ## Remove rows without cog results
@@ -75,25 +74,18 @@ cog_vars[,c(24:34)] %>% select(where(is.numeric)) %>%
 cog_vars %>% select(CDR_ImmWRCorrect_v1, CDR_DelayedWRCorrect_v1,
                                CDR_NumericWMOverallAcc_v1, MMSE,
                                WASImatrixreasoningrawscore, WASI_vocabrawscore,
-                               Serial3sAcc_v1, Serial7sAcc_v1) %>% 
+                               Serial3Correct_v1, Serial7Correct_v1) %>% 
   multi.hist(global = F)
 
 
 # winsorise outliers for RT vars
 
 winsorise <- function(x, sd){
-  
   maxin <- max(x[scale(x) < sd],na.rm=T)
-  
   minin <- min(x[scale(x) > -sd],na.rm=T)
-  
-  
   x <- ifelse(x > maxin & !is.na(x), maxin, x)
-  
   x <- ifelse(x < minin & !is.na(x), minin, x)
-  
   x
-  
 }
 
 # Winsorise outliers 
@@ -104,8 +96,8 @@ cog_vars <- cog_vars %>% # winsorise everything except age
 cog_vars2 <- cog_vars %>% select(IDno, Initialage, Sex, starts_with("wlog"), 
                                  wWASImatrixreasoningrawscore, wWASI_vocabrawscore, 
                                  wCDR_ImmWRCorrect_v1,wCDR_DelayedWRCorrect_v1, 
-                                 wCDR_NumericWMOverallAcc_v1, wMMSE,wSerial3sAcc_v1,
-                                 wSerial7sAcc_v1) # select relevant variables
+                                 wCDR_NumericWMOverallAcc_v1, wMMSE,wSerial3Correct_v1,
+                                 wSerial7Correct_v1) # select relevant variables
 
 # histograms of winsorised variables
 
@@ -115,7 +107,7 @@ cog_vars2 %>% select(starts_with("wlog")) %>%
 cog_vars2 %>% select(wCDR_ImmWRCorrect_v1, wCDR_DelayedWRCorrect_v1,
                     wCDR_NumericWMOverallAcc_v1, wMMSE,
                     wWASImatrixreasoningrawscore, wWASI_vocabrawscore,
-                    wSerial3sAcc_v1, wSerial7sAcc_v1) %>% 
+                    wSerial3Correct_v1, wSerial7Correct_v1) %>% 
   multi.hist(global = F)
 
 ## remove cases with more than half cog vars missing
@@ -146,7 +138,7 @@ cog_vars2 <- cog_vars2 %>%
   mutate(across(starts_with("wlog"), reverse_RT, .names = "{.col}_rev"))
 
 
-## rescale accuracy variables (10% units)
+## rescale serial/accuracy variables (10% units)
 
 cog_vars2 <- cog_vars2 %>% mutate(across(starts_with("wSerial"), ~  . / 10))
 
@@ -164,7 +156,7 @@ cog_vars2 <- cog_vars2 %>%
 cog_vars3 <- cog_vars2 %>% 
   select(IDno, Sex, Initialage, ends_with("_rev"), wCDR_ImmWRCorrect_v1, wWASI_vocabrawscore, wWASImatrixreasoningrawscore,
          wCDR_DelayedWRCorrect_v1, wCDR_NumericWMOverallAcc_v1, wMMSE,
-         wSerial3sAcc_v1, wSerial7sAcc_v1)
+         wSerial3Correct_v1, wSerial7Correct_v1)
 
 ## single imputation
 
@@ -198,8 +190,8 @@ stripplot(cog_vars3_imp, wlogSCB_ConStroopRTms_v1_rev +
 
 stripplot(cog_vars3_imp, wCDR_ImmWRCorrect_v1 +
             wCDR_DelayedWRCorrect_v1 +
-            wSerial3sAcc_v1 +
-            wSerial7sAcc_v1 +
+            wSerial3Correct_v1 +
+            wSerial7Correct_v1 +
             wCDR_NumericWMOverallAcc_v1  ~ .imp)
 
 stripplot(cog_vars3_imp, wWASImatrixreasoningrawscore + 
@@ -236,8 +228,8 @@ Glr_m6 =~ wCDR_ImmWRCorrect_v1 +
        wCDR_DelayedWRCorrect_v1 
        
 
-Gwm_ac =~ wSerial3sAcc_v1 +
-        wSerial7sAcc_v1 +
+Gwm_ac =~ wSerial3Correct_v1 +
+        wSerial7Correct_v1 +
         wCDR_NumericWMOverallAcc_v1 +
         wlogTMT_Bms_v1_rev
 
@@ -249,7 +241,7 @@ Gc =~ wMMSE +
 
 # correlated residuals
 wlogTMT_Ams_v1_rev ~~ wlogTMT_Bms_v1_rev
-wSerial3sAcc_v1 ~~ wSerial7sAcc_v1
+wSerial3Correct_v1 ~~ wSerial7Correct_v1
 wlogJenson4ChoiceDecisionTimems_v1_rev ~~ wlogJenson1ChoiceDecisionTimems_v1_rev
 wlogJenson8ChoiceDecisionTimems_v1_rev ~~ wlogJenson1ChoiceDecisionTimems_v1_rev
 wlogJenson8ChoiceDecisionTimems_v1_rev ~~ wlogJenson4ChoiceDecisionTimems_v1_rev
@@ -258,7 +250,6 @@ wlogJenson8ChoiceDecisionTimems_v1_rev ~~ wlogJenson4ChoiceDecisionTimems_v1_rev
 # fit model
 
 test1 <- cfa(model, data = imp_dat, estimator = "MLR", std.lv = F)
-?multi.hist
 
 # results
 
@@ -281,5 +272,4 @@ new <- new %>% select(IDno, Gt:Gc)
 arcli2 <- arcli %>% full_join(new, by = "IDno")
 
 write_sav(arcli2, "arcli with CHC.sav")
-
 
