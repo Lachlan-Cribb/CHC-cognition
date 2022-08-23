@@ -15,6 +15,9 @@ arcli <- na_if(arcli, -999)
 
 arcli <- na_if(arcli, -99)
 
+arcli <- na_if(arcli, 999)
+
+
 # Rename problematic variable names
 
 arcli <- arcli %>% 
@@ -61,8 +64,7 @@ RT_vars <- cog_vars %>% select(
   names() # variable names
 
 cog_vars <- cog_vars %>% 
-  mutate(across(all_of(RT_vars), ~ log2(.), .names = "log{.col}")) # log 2 transform
-
+  mutate(across(all_of(RT_vars), ~ log(.), .names = "log{.col}")) # log transform
 
 # check histograms #
 
@@ -118,11 +120,9 @@ nrow(cog_vars2)
 
 # check missing data per variable
 
-n_miss <- colSums(is.na(cog_vars2))
+miss <- naniar::miss_var_summary(cog_vars2) |> print(n= 50)
 
-median(n_miss / nrow(cog_vars2))
-
-sort(n_miss / nrow(cog_vars2))
+#write_csv(miss, "missing_summary.csv")
 
 # Reverse score reaction time measures
 
@@ -259,9 +259,10 @@ preds <- as_tibble(lavPredict(test1, newdata = imp_dat, type = "lv",
 
 ## Estimate g-factor
 
-fct <- factanal(preds, factors = 1, scores = "Bartlett")
+fct <- factanal(scale(preds), factors = 1, scores = "Bartlett")
 
-preds$g <- fct$scores
+preds$g <- as_tibble(fct$scores)$Factor1
+
 
 ## Combine latent variables and g factor with original data
 
@@ -271,9 +272,12 @@ new <- cbind(imp_dat, preds)
 
 new <- new %>% select(IDno, Gt:g)
 
-## merge factor scores into original data
+# add in z scored variables
 
-arcli2 <- arcli %>% full_join(new, by = "IDno")
+new <- new |> 
+  mutate(across(-IDno, ~ (. - mean(.)) / sd(.), .names = "z_{.col}")) |> 
+  as_tibble()
 
-#write_sav(arcli2, "arcli with CHC.sav")
+# save to new datafile
+#write_csv(new, "baseline_CHC.csv")
 
