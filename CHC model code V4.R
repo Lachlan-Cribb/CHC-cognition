@@ -7,14 +7,13 @@ library(mice)
 
 ## Load data 
 
-arcli <- read_sav("C:\\Users\\lachy\\Dropbox\\ARCLI data entry\\BLINDED DATA SETS\\BLINDED _DO NOT TOUCH\\ARCLI_V1_Baseline_ALL_7-SEPT-2021.sav")
+arcli <- read_sav("/home/lachlan/Dropbox/ARCLI data entry/BLINDED DATA SETS/BLINDED _DO NOT TOUCH/ARCLI_V1_Baseline_ALL_31-JAN-2022.sav")
 
 # remove -999
 
 arcli <- na_if(arcli, -999)
 
 arcli <- na_if(arcli, -99)
-
 
 # Rename problematic variable names
 
@@ -25,7 +24,6 @@ arcli <- arcli %>%
   rename(Serial3Total_v1 = `Serial3sTotalResponses#_v1`) %>% 
   rename(Serial7Correct_v1 = `Serial7sCorrectresponses#_v1`) %>% 
   rename(Serial7Total_v1 = `Serial7sTotalResponses#_v1`)
-
 
 # create new overall score
 
@@ -137,7 +135,6 @@ reverse_RT <- function(x){
 cog_vars2 <- cog_vars2 %>% 
   mutate(across(starts_with("wlog"), reverse_RT, .names = "{.col}_rev"))
 
-
 ## rescale serial/accuracy variables (10% units)
 
 cog_vars2 <- cog_vars2 %>% mutate(across(starts_with("wSerial"), ~  . / 10))
@@ -198,7 +195,6 @@ stripplot(cog_vars3_imp, wWASImatrixreasoningrawscore +
             wMMSE +
             wWASI_vocabrawscore ~ .imp)
 
-
 # data for CFA 
 
 varTable(imp_dat)
@@ -237,6 +233,8 @@ Gf =~ wWASImatrixreasoningrawscore
 
 Gc =~ wMMSE +
       wWASI_vocabrawscore
+      
+g =~ Gt + Gs + Glr_m6 + Gwm_ac + Gf + Gc
 
 
 # correlated residuals
@@ -245,6 +243,9 @@ wSerial3Correct_v1 ~~ wSerial7Correct_v1
 wlogJenson4ChoiceDecisionTimems_v1_rev ~~ wlogJenson1ChoiceDecisionTimems_v1_rev
 wlogJenson8ChoiceDecisionTimems_v1_rev ~~ wlogJenson1ChoiceDecisionTimems_v1_rev
 wlogJenson8ChoiceDecisionTimems_v1_rev ~~ wlogJenson4ChoiceDecisionTimems_v1_rev
+Gt ~~ Gs
+Gs ~~ Gwm_ac
+Gt ~~ Gwm_ac
 '
 
 # fit model
@@ -265,7 +266,7 @@ new <- cbind(imp_dat, preds)
 
 ## save only factor scores and IDvar to merge back into data
 
-new <- new %>% select(IDno, Gt:Gc)
+new <- new %>% select(IDno, Gt:g)
 
 ## merge factor scores into original data
 
