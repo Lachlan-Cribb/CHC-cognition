@@ -184,7 +184,6 @@ stripplot(cog_vars3_imp, wlogSCB_ConStroopRTms_v1_rev +
             wlogTMT_Ams_v1_rev +
             wlogTMT_Bms_v1_rev  ~ .imp)
 
-
 stripplot(cog_vars3_imp, wCDR_ImmWRCorrect_v1 +
             wCDR_DelayedWRCorrect_v1 +
             wSerial3Correct_v1 +
@@ -234,9 +233,6 @@ Gf =~ wWASImatrixreasoningrawscore
 Gc =~ wMMSE +
       wWASI_vocabrawscore
       
-g =~ Gt + Gs + Glr_m6 + Gwm_ac + Gf + Gc
-
-
 # correlated residuals
 wlogTMT_Ams_v1_rev ~~ wlogTMT_Bms_v1_rev
 wSerial3Correct_v1 ~~ wSerial7Correct_v1
@@ -250,7 +246,7 @@ Gt ~~ Gwm_ac
 
 # fit model
 
-test1 <- cfa(model, data = imp_dat, estimator = "MLR", std.lv = F)
+test1 <- cfa(model, data = imp_dat, estimator = "ML", std.lv = F)
 
 # results
 
@@ -258,9 +254,16 @@ summary(test1, fit.measures=T, standardized = T)
 
 ## Save factor scores ##
 
-preds <- as_tibble(lavPredict(test1, newdata = imp_dat, type = "lv",
-                    method = "Bartlett"))
+preds <- as_tibble(lavPredict(test1, newdata = imp_dat, type = "lv", 
+                              method = "Bartlett"))
 
+## Estimate g-factor
+
+fct <- factanal(preds, factors = 1, scores = "Bartlett")
+
+preds$g <- fct$scores
+
+## Combine latent variables and g factor with original data
 
 new <- cbind(imp_dat, preds)
 
@@ -272,5 +275,5 @@ new <- new %>% select(IDno, Gt:g)
 
 arcli2 <- arcli %>% full_join(new, by = "IDno")
 
-write_sav(arcli2, "arcli with CHC.sav")
+#write_sav(arcli2, "arcli with CHC.sav")
 
